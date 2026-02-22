@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Billing List — FastFood POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="style.css" rel="stylesheet">
+  <link href="nav.css" rel="stylesheet">
+</head>
+<body>
+  <main class="container">
+    <h2 class="card-title">Billing List</h2>
+    <div class="card">
+      <div class="toolbar mb-10">
+        <select id="st">
+          <option value="PAID" selected>Paid</option>
+          <option value="PARTIAL">Partial</option>
+        </select>
+        <input id="q" class="w-240" type="search" placeholder="Search by Order # or Phone">
+        <input id="from" type="date">
+        <input id="to" type="date">
+        <button id="reload" class="btn">Reload</button>
+        <span id="msg" class="muted small"></span>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>No</th>
+              <th>Phone</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th class="num">Grand</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script src="nav.js"></script>
+  <script>
+    const ui = {
+      st: document.getElementById('st'),
+      q: document.getElementById('q'),
+      from: document.getElementById('from'),
+      to: document.getElementById('to'),
+      reload: document.getElementById('reload'),
+      body: document.getElementById('body'),
+      msg: document.getElementById('msg'),
+    };
+
+    function like(s, q){ return (String(s||'').toLowerCase()).includes(String(q||'').toLowerCase()); }
+    function fmt(n){ return Number(n||0).toFixed(2); }
+
+    async function load(){
+      ui.msg.textContent = 'Loading...';
+      ui.body.innerHTML = '';
+      try{
+        const st = ui.st.value || 'PAID';
+        const res = await apiFetch(`../api/orders?status=${encodeURIComponent(st)}&limit=500`);
+        let rows = res.data || [];
+
+        const q = (ui.q.value||'').trim();
+        if (q){
+          rows = rows.filter(r => like(r.order_no, q) || like(r.customer_phone, q) || String(r.id)===q);
+        }
+
+        const f = ui.from.value ? new Date(ui.from.value + 'T00:00:00') : null;
+        const t = ui.to.value ? new Date(ui.to.value + 'T23:59:59') : null;
+        if (f || t){
+          rows = rows.filter(r=>{
+            const d = new Date(r.created_at || r.opened_at || r.id*1000);
+            if (f && d < f) return false;
+            if (t && d > t) return false;
+            return true;
+          });
+        }
+
+        rows.forEach(r=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${r.id}</td>
+            <td>${r.order_no || ''}</td>
+            <td>${r.customer_phone || ''}</td>
+            <td>${r.order_type}</td>
+            <td>${r.status}</td>
+            <td class="num">${fmt(r.grand_total)}</td>
+            <td>${(r.created_at||'').replace('T',' ').replace('Z','')}</td>
+            <td class="row-actions">
+              <button class="btn" data-act="pos">Open</button>
+              <button class="btn" data-act="edit">Edit</button>
+              <button class="btn" data-act="receipt">Receipt</button>
+              <button class="btn" data-act="kprint">Kitchen Slip</button>
+            </td>
+          `;
+          tr.querySelectorAll('button').forEach(btn=>{
+            btn.addEventListener('click', ()=>{
+              const act = btn.dataset.act;
+              if (act==='pos') location.href = `pos.html?orderId=${r.id}`;
+              if (act==='edit') location.href = `billing.html?orderId=${r.id}`;
+              if (act==='receipt') window.open(`print/receipt.html?orderId=${r.id}`, '_blank');
+              if (act==='kprint') window.open(`print/kitchen-slip.html?orderId=${r.id}`, '_blank');
+            });
+          });
+          ui.body.appendChild(tr);
+        });
+
+        ui.msg.textContent = rows.length ? `Loaded ${rows.length}` : 'No data';
+      }catch(e){
+        ui.msg.textContent = e.message || 'Failed';
+      }
+    }
+
+    ui.reload.addEventListener('click', load);
+    ui.st.addEventListener('change', load);
+    ui.q.addEventListener('input', ()=> { if (!ui.q.value) load(); });
+    (function setToday(){
+      const d = new Date(), yyyy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+      ui.from.value = `${yyyy}-${mm}-${dd}`;
+      ui.to.value = `${yyyy}-${mm}-${dd}`;
+    })();
+
+    load();
+  </script>
+</body>
+</html>

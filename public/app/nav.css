@@ -1,0 +1,103 @@
+:root{
+  --nav-bg:#ffffff;
+  --nav-fg:#0f172a;
+  --nav-muted:#64748b;
+  --nav-accent:#f97316;  /* orange */
+  --nav-border:#e5e7eb;
+}
+
+body.has-global-nav{ padding-top: 60px; }
+
+.global-nav{
+  position: fixed; inset: 0 0 auto 0;
+  height: 56px;
+  background: var(--nav-bg);
+  color: var(--nav-fg);
+  border-bottom: 1px solid var(--nav-border);
+  z-index: 999;
+}
+
+.global-nav .gn-inner{
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.global-nav .brand{
+  display: inline-flex; align-items: center; gap: 8px;
+  min-width: 0;
+}
+.global-nav .brand img{
+  height: 50px; width: auto; display: block;
+}
+.global-nav .brand .title {
+  font-weight: 700;
+  color: var(--nav-fg);
+  white-space: nowrap;
+  font-size: 24px;
+  margin-right: 36px;
+}
+
+.global-nav .menu{
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; margin-bottom: 10px;
+}
+.global-nav .menu::-webkit-scrollbar{ display: none; }
+
+.global-nav .menu a{
+  display: inline-flex; align-items: center;
+  height: 34px; padding: 0 10px;
+  color: var(--nav-fg);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.global-nav .menu a:hover{
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+}
+.global-nav .menu a.active{
+  background: linear-gradient(135deg, var(--nav-accent), #ea580c);
+  border-color: transparent;
+  color: #fff;
+}
+
+.global-nav .right{
+  display: inline-flex; align-items: center; gap: 8px;
+}
+
+.global-nav .hamburger{
+  display: none;
+  height: 34px; width: 40px;
+  background: #f1f5f9; color: var(--nav-fg);
+  border: 1px solid var(--nav-border); border-radius: 8px;
+  font-size: 18px; line-height: 18px;
+}
+
+@media (max-width: 820px){
+  .global-nav .gn-inner{
+    grid-template-columns: auto auto 40px;
+  }
+  .global-nav .hamburger{ display: inline-flex; align-items:center; justify-content:center; }
+  .global-nav .menu{
+    position: fixed; top: 56px; left: 0; right: 0;
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
+    padding: 8px;
+    gap: 8px; flex-wrap: wrap;
+    display: none;
+  }
+  .global-nav.open .menu{ display: flex; }
+}
+
+/* Hide any old page-level header if present */
+body.has-global-nav header.topbar{ display: none !important; }

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sales Report — FastFood POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="style.css" rel="stylesheet">
+  <link href="nav.css" rel="stylesheet">
+  <style>
+    .report-hero { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .report-hero .stat { padding:10px 14px; border-radius:6px; background:#f8fafc; box-shadow: 0 0 0 1px rgba(0,0,0,0.02) inset; }
+    .report-hero .stat .val { font-weight:700; font-size:1.1rem; display:block; }
+    .muted-small { color:#666; font-size:0.9rem; }
+    .grid-3 { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; }
+    @media (max-width:900px){ .grid-3{ grid-template-columns: 1fr; } }
+    .actions label { margin-right:8px; }
+    .pill { display:inline-block; padding:6px 10px; border-radius:6px; background:#f3f4f6; margin-right:6px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-inline"><div class="logo small">🍔</div><strong>Sales Report</strong></div>
+    <div class="topbar-actions"><a class="btn" href="orders.html">← Orders</a><a class="btn" href="dashboard.html">Dashboard</a></div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="card-title">Filter</h2>
+      <div class="actions" id="filters">
+        <label>From <input type="date" id="from"></label>
+        <label>To <input type="date" id="to"></label>
+        <label>Group
+          <select id="group">
+            <option value="day">Daily</option>
+            <option value="month">Monthly</option>
+          </select>
+        </label>
+        <label>Branch
+          <select id="branch">
+            <option value="0">All</option>
+          </select>
+        </label>
+        <button id="btnLoad" class="btn">Load Report</button>
+        <button id="btnExport" class="btn">Export CSV</button>
+        <span id="msg" class="muted small"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title">Summary</h3>
+      <div class="report-hero" id="summary">
+        <div class="stat"><span class="muted-small">Orders</span><span class="val" id="sumOrders">0</span></div>
+        <div class="stat"><span class="muted-small">Total Sales</span><span class="val" id="sumSales">0.00</span></div>
+        <div class="stat"><span class="muted-small">Paid</span><span class="val" id="sumPaid">0.00</span></div>
+        <div class="stat"><span class="muted-small">Partial</span><span class="val" id="sumPartial">0.00</span></div>
+        <div class="stat"><span class="muted-small">Avg Order</span><span class="val" id="sumAvg">0.00</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title">Sales by Period</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Period</th><th class="num">Orders</th><th class="num">Sales</th><th class="num">Paid</th><th class="num">Partial</th></tr></thead>
+          <tbody id="body"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="card grid-3">
+      <div>
+        <h3 class="card-title">Payment Breakdown</h3>
+        <div id="payments"></div>
+      </div>
+      <div>
+        <h3 class="card-title">Top Items</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Sales</th></tr></thead>
+            <tbody id="topItems"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3 class="card-title">Actions</h3>
+        <div class="actions">
+          <button id="btnPrint" class="btn">Print</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+  <script src="nav.js"></script>
+  <script src="sales_report.js"></script>
+</body>
+</html>
