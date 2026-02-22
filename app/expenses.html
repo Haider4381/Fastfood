@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastFood POS — Expenses</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="style.css" rel="stylesheet">
+  <link href="nav.css" rel="stylesheet">
+</head>
+<body>
+  <main class="container">
+    <section class="two-col-320">
+      <!-- Left: Expense Categories + Add Expense -->
+      <div class="stack">
+        <div class="card">
+          <h2 class="card-title">Expense Categories</h2>
+          <div class="form">
+            <div class="form-row">
+              <label for="expCatName">Name</label>
+              <input type="text" id="expCatName" placeholder="e.g., Utilities">
+            </div>
+            <div class="form-row">
+              <label for="expCatActive">Active</label>
+              <select id="expCatActive">
+                <option value="1" selected>Yes</option>
+                <option value="0">No</option>
+              </select>
+            </div>
+            <button id="btnAddExpCat" class="btn">Add Category</button>
+            <span id="expCatMsg" class="muted small"></span>
+          </div>
+          <hr class="hr">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="expCatBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title">Add Expense</h2>
+          <form id="expForm" class="form">
+            <div class="form-row">
+              <label for="branchId">Branch ID</label>
+              <input type="number" id="branchId" min="1" value="1" required>
+            </div>
+            <div class="form-row">
+              <label for="categoryId">Category</label>
+              <select id="categoryId" required></select>
+            </div>
+            <div class="form-row">
+              <label for="amount">Amount</label>
+              <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="form-row">
+              <label for="vendor">Vendor (optional)</label>
+              <input type="text" id="vendor" placeholder="Metro / Supplier name">
+            </div>
+            <div class="form-row">
+              <label for="notes">Notes (optional)</label>
+              <input type="text" id="notes" placeholder="Buns, sauces, etc.">
+            </div>
+            <div class="form-row">
+              <label for="attachment">Attachment URL (optional)</label>
+              <input type="url" id="attachment" placeholder="https://...">
+            </div>
+            <button class="btn primary" type="submit" id="btnSave">Save Expense</button>
+            <span id="expMsg" class="muted small"></span>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right: Recent Expenses -->
+      <div class="card">
+        <h2 class="card-title">Recent Expenses</h2>
+        <div class="actions mb-8">
+          <button id="btnReload" class="btn">Reload</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="expTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Branch</th>
+                <th>Category</th>
+                <th class="num">Amount</th>
+                <th>Vendor</th>
+                <th>Notes</th>
+                <th>By</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+  <script src="expenses.js"></script>
+  <script src="nav.js"></script>
+</body>
+</html>

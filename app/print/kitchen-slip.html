@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Kitchen Slip</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      /* Set by JS from ?w=58|80 and optional &pw=70 */
+      --paper-width:80mm;      /* physical paper width */
+      --content-width:72mm;    /* printable safe width inside paper */
+      --fs:13px;               /* font size */
+      --lh:1.38;               /* line height (a bit larger for thermal clarity) */
+      --pad:3px;               /* cell vertical padding */
+      --logo-w:200px;          /* logo width (adjusted by JS for 58mm) */
+    }
+    html,body{background:#fff;color:#000}
+    body{
+      margin:0;padding:0;
+      font:var(--fs)/var(--lh) Arial,Helvetica,sans-serif;
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;
+      -webkit-font-smoothing:none; font-smooth:never; text-rendering:optimizeSpeed;
+    }
+
+    /* Single, simple table layout to maximize compatibility */
+    table.slip{
+      width:var(--content-width);
+      margin:0 auto;
+      border-collapse:collapse;
+      table-layout:fixed; /* prevents overflow/cut-off */
+    }
+
+    /* Column widths tuned for 72mm printable width by default */
+    col.w-idx   { width: 9mm; }
+    col.w-item  { width: auto; }
+    col.w-qty   { width: 12mm; }
+    col.w-note  { width: 18mm; }
+
+    th,td{
+      padding:var(--pad) 0;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+      white-space:normal;
+      letter-spacing:0.05px;
+      vertical-align:top;
+    }
+    th{ font-weight:700; }
+    .num{ text-align:right; }
+    .center{ text-align:center; }
+    .small{ font-size:12px; }
+
+    /* Logo */
+    .logo{
+      display:block;
+      width:var(--logo-w);
+      max-width:100%;
+      height:auto;
+      margin:0 auto 2px; /* tiny spacing below logo */
+      image-rendering:crisp-edges;
+      image-rendering:-webkit-optimize-contrast;
+    }
+
+    /* Light separators (avoid heavy heat on thermal head) */
+    .rule-top    { border-top:1px solid #111; }
+    .rule-bottom { border-bottom:1px solid #111; }
+
+    /* Keep rows intact on roll */
+    tr, td, th { page-break-inside: avoid; }
+
+    @media print{
+      @page{ size: var(--paper-width) auto; margin: 0 }
+      body{ margin:0 }
+    }
+  </style>
+</head>
+<body>
+  <table class="slip" aria-label="Kitchen Slip">
+    <colgroup>
+      <col class="w-idx">
+      <col class="w-item">
+      <col class="w-qty">
+      <col class="w-note">
+    </colgroup>
+
+    <!-- Header -->
+    <tbody id="hdr">
+      <!-- Logo row -->
+      <tr>
+        <td colspan="5" class="center">
+         <!-- <img class="logo" src="../assets/logo.png" alt="Logo">--> <h2 style="font-size: 28px;">SNAZZ FAST FOOD</h2>
+        </td>
+      </tr>
+
+      <tr><td colspan="4" class="center"><strong>Chota Manawala Main Bagawala Road Near Hussain Petroleum Faisalabad.</strong></td></tr>
+      <tr><td colspan="4" class="center small"><strong>Phone: 0326-0030707</strong></td></tr>
+      <tr class="rule-bottom"><td colspan="4"></td></tr>
+
+      <tr>
+        <td colspan="2"><strong>Kitchen Slip</strong></td>
+        <td colspan="2" class="num small" id="when">—</td>
+      </tr>
+      <tr class="rule-bottom">
+        <td colspan="3" id="orderMeta">Order —</td>
+        <td class="num small" id="orderType">—</td>
+      </tr>
+
+      <tr><td colspan="4"><strong>Items</strong></td></tr>
+      <tr class="rule-bottom">
+        <th>#</th>
+        <th>Item</th>
+        <th class="num">Qty</th>
+        <th class="num">Note</th>
+      </tr>
+    </tbody>
+
+    <!-- Items -->
+    <tbody id="body"></tbody>
+
+    <!-- Optional notes -->
+    <tbody id="notesBox">
+      <tr class="rule-top"><td colspan="4"></td></tr>
+      <tr id="notesRow" hidden>
+        <td colspan="4" class="small"><strong>Notes:</strong> <span id="notesTxt"></span></td>
+      </tr>
+    </tbody>
+
+    <!-- Footer -->
+    <tbody id="ftr">
+      <tr><td colspan="4" class="center small">Software develop by Websofthouse (0300-7537538).</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    // Set paper width, printable content width, and logo width from URL
+    (function setupPaper(){
+      const qs = new URLSearchParams(location.search);
+      const w = Number(qs.get('w') || 80);          // 80 or 58
+      const defaultPW = (w === 58) ? 48 : 72;       // safe printable width
+      const pw = Number(qs.get('pw') || defaultPW); // override: &pw=70, etc.
+      const is58 = (w === 58);
+
+      const root = document.documentElement.style;
+      root.setProperty('--paper-width', is58 ? '58mm' : '80mm');
+      root.setProperty('--content-width', pw + 'mm');
+      root.setProperty('--fs', is58 ? '12px' : '13px');
+      root.setProperty('--lh', is58 ? '1.34' : '1.38');
+      root.setProperty('--pad', is58 ? '2px' : '3px');
+      root.setProperty('--logo-w', is58 ? '160px' : '200px'); // adjust logo size per paper
+
+      // Some browsers honor @page better when injected at runtime too
+      const st = document.createElement('style');
+      st.media = 'print';
+      st.textContent = `@page{ size: ${is58 ? '58mm' : '80mm'} auto; margin: 0 }`;
+      document.head.appendChild(st);
+    })();
+
+    async function apiFetch(path, options = {}) {
+      const res = await fetch(path, Object.assign({ credentials: 'same-origin' }, options));
+      const txt = await res.text();
+      let data = null;
+      try { data = txt ? JSON.parse(txt) : null; } catch(_) { data = null; }
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || res.statusText || 'Request failed';
+        throw new Error(msg);
+      }
+      return data;
+    }
+    function num(v){ const n = parseFloat(v); return isFinite(n) ? n : 0; }
+    function fmtQty(q){ const n = Number(q||0); return Number.isInteger(n) ? String(n) : n.toFixed(2); }
+
+    (async function boot(){
+      const qs = new URLSearchParams(location.search);
+      const id = Number(qs.get('orderId') || 0);
+      if (!id) { alert('Missing orderId'); window.close(); return; }
+
+      try {
+        const data = await apiFetch('../../api/orders/' + id);
+        const o = data.order, items = data.items || [];
+
+        // Header
+        document.getElementById('when').textContent = new Date().toLocaleString();
+        document.getElementById('orderMeta').textContent = 'Order #' + o.id + ' (' + (o.order_no || '') + ')';
+        document.getElementById('orderType').textContent = (o.order_type || '').toUpperCase();
+
+        // Items (sanitize names to remove hidden CR/LF)
+        const tb = document.getElementById('body');
+        tb.innerHTML = '';
+        items.forEach((it, i) => {
+          const name = String(it.item_name_snapshot || '')
+            .replace(/\r?\n/g,' ')
+            .replace(/\s{2,}/g,' ')
+            .trim();
+
+          // Show DISC tag in Note if line_discount > 0
+          const note = (num(it.line_discount) > 0) ? 'DISC' : '';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML =
+            `<td>${i+1}</td>
+             <td>${name}</td>
+             <td class="num">${fmtQty(it.qty)}</td>
+             <td class="num">${note}</td>`;
+          tb.appendChild(tr);
+        });
+
+        // Order level notes
+        const n = (o.notes || '').trim();
+        if (n) {
+          document.getElementById('notesTxt').textContent = n;
+          document.getElementById('notesRow').hidden = false;
+        }
+
+        // Print once, then close
+        setTimeout(() => { window.print(); setTimeout(() => window.close(), 400); }, 150);
+      } catch (e) {
+        alert('Failed to load order: ' + (e.message || e));
+      }
+    })();
+  </script>
+</body>
+</html>

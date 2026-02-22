@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Menu Manager — FastFood POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="style.css" rel="stylesheet">
+  <link href="nav.css" rel="stylesheet">
+</head>
+<body>
+  <main class="container">
+    <section class="layout-320">
+      <div class="card">
+        <h2 class="card-title">Categories</h2>
+
+        <!-- Add Category -->
+        <div class="form mb-10">
+          <div class="form-row">
+            <label>New Category</label>
+            <input id="newCatName" type="text" placeholder="e.g., Burgers">
+          </div>
+          <div class="form-row">
+            <label>Sort</label>
+            <input id="newCatSort" type="number" value="0" class="max-w-120">
+          </div>
+          <button id="btnAddCat" class="btn">Add Category</button>
+          <div class="small muted">Category add karne ke baad neeche list auto update ho gi.</div>
+        </div>
+
+        <div class="toolbar mb-8">
+          <button id="btnAll" class="btn">All</button>
+          <button id="btnReloadCats" class="btn">Reload</button>
+          <span id="catMsg" class="muted small"></span>
+        </div>
+        <div id="catList" class="cat-list"></div>
+
+        <hr class="hr-12">
+
+        <h3 class="card-title">Add Item</h3>
+        <div class="form">
+          <div class="form-row">
+            <label>Name</label>
+            <input id="newName" type="text" placeholder="e.g., Chicken Burger">
+          </div>
+          <div class="form-row">
+            <label>Price</label>
+            <input id="newPrice" type="number" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-row">
+            <label>Category</label>
+            <select id="newCat"></select>
+          </div>
+          <div class="form-row">
+            <label>Active</label>
+            <select id="newActive">
+              <option value="1" selected>Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+          <button id="btnAdd" class="btn primary">Add Item</button>
+          <span id="addMsg" class="muted small"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Items</h2>
+        <div class="toolbar mb-8">
+          <input id="q" type="search" placeholder="Search..." class="w-220">
+          <label class="muted-small">
+            <input id="onlyActive" type="checkbox" checked> Active only
+          </label>
+          <button id="btnReloadItems" class="btn">Reload</button>
+          <span id="itemsMsg" class="muted small"></span>
+        </div>
+
+        <div class="items header-row">
+          <div class="item-row">
+            <div>Name</div>
+            <div class="num">Price</div>
+            <div>Status / Switch</div>
+            <div>Category</div>
+            <div>Actions</div>
+          </div>
+        </div>
+        <div id="itemsBox" class="items"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+  <script src="nav.js"></script>
+  <script>
+    const state = { cats: [], items: [], selectedCatId: 0, lastAddedId: 0 };
+
+    const els = {
+      catList: document.getElementById('catList'),
+      catMsg: document.getElementById('catMsg'),
+      btnAll: document.getElementById('btnAll'),
+      btnReloadCats: document.getElementById('btnReloadCats'),
+
+      newCatName: document.getElementById('newCatName'),
+      newCatSort: document.getElementById('newCatSort'),
+      btnAddCat: document.getElementById('btnAddCat'),
+
+      itemsBox: document.getElementById('itemsBox'),
+      itemsMsg: document.getElementById('itemsMsg'),
+      btnReloadItems: document.getElementById('btnReloadItems'),
+
+      newName: document.getElementById('newName'),
+      newPrice: document.getElementById('newPrice'),
+      newCat: document.getElementById('newCat'),
+      newActive: document.getElementById('newActive'),
+      btnAdd: document.getElementById('btnAdd'),
+      addMsg: document.getElementById('addMsg'),
+
+      q: document.getElementById('q'),
+      onlyActive: document.getElementById('onlyActive'),
+
+      toast: document.getElementById('toast'),
+    };
+
+    function toast(msg, ok = true) {
+      const t = els.toast;
+      t.textContent = msg;
+      t.style.background = ok ? '#064e3b' : '#7f1d1d';
+      t.hidden = false;
+      setTimeout(()=> t.hidden = true, 1500);
+    }
+    function fmt(n){ return Number(n||0).toFixed(2); }
+
+    async function loadCats() {
+      els.catMsg.textContent = 'Loading...';
+      try {
+        const res = await apiFetch('../api/menu/categories');
+        state.cats = res.data || [];
+        renderCats();
+        els.catMsg.textContent = '';
+        els.newCat.innerHTML = '';
+        (state.cats || []).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = String(c.id);
+          opt.textContent = c.name;
+          els.newCat.appendChild(opt);
+        });
+        if (state.selectedCatId) els.newCat.value = String(state.selectedCatId);
+      } catch (e) {
+        els.catMsg.textContent = e.message || 'Failed';
+      }
+    }
+
+    async function addCategory(){
+      const name = (els.newCatName.value||'').trim();
+      const sort = Number(els.newCatSort.value||0);
+      if (!name){ toast('Category name required', false); return; }
+      els.catMsg.textContent = 'Saving...';
+      try{
+        await apiFetch('../api/menu/categories', {
+          method:'POST',
+          body: JSON.stringify({ name, sort_order: sort, active: 1 })
+        });
+        els.newCatName.value = '';
+        els.newCatSort.value = '0';
+        await loadCats();
+        toast('Category added');
+      }catch(e){ toast(e.message||'Failed', false); }
+      finally{ els.catMsg.textContent=''; }
+    }
+
+    els.btnAddCat.addEventListener('click', addCategory);
+
+    async function loadItems() {
+      els.itemsMsg.textContent = 'Loading...';
+      try {
+        const res = await apiFetch('../api/menu/items');
+        state.items = res.data || [];
+        renderItems();
+        els.itemsMsg.textContent = `Loaded ${state.items.length}`;
+        if (state.lastAddedId) {
+          const row = document.querySelector('[data-item-id="'+state.lastAddedId+'"]');
+          if (row) { row.classList.add('hl'); setTimeout(()=> row.classList.remove('hl'), 1800); }
+          state.lastAddedId = 0;
+        }
+        renderCats();
+      } catch (e) {
+        els.itemsMsg.textContent = e.message || 'Failed';
+      }
+    }
+
+    function renderCats() {
+      els.catList.innerHTML = '';
+
+      // All button row
+      const allBtn = document.createElement('div');
+      allBtn.className = 'cat-item' + (state.selectedCatId ? '' : ' active');
+      const allLeft = document.createElement('div');
+      allLeft.textContent = 'All';
+      const allRight = document.createElement('div');
+      allRight.className = 'cat-actions';
+      const allCount = document.createElement('span');
+      allCount.className = 'pill';
+      allCount.textContent = String(state.items.length);
+      allRight.appendChild(allCount);
+      allBtn.appendChild(allLeft);
+      allBtn.appendChild(allRight);
+      allBtn.addEventListener('click', () => { state.selectedCatId = 0; renderCats(); renderItems(); syncAddFormCat(); });
+      els.catList.appendChild(allBtn);
+
+      // Category rows
+      (state.cats || []).forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'cat-item' + (state.selectedCatId === Number(c.id) ? ' active' : '');
+
+        const left = document.createElement('div');
+        left.textContent = c.name;
+        left.style.cursor = 'pointer';
+        left.addEventListener('click', () => { state.selectedCatId = Number(c.id); renderCats(); renderItems(); syncAddFormCat(); });
+
+        const right = document.createElement('div');
+        right.className = 'cat-actions';
+        const count = (state.items || []).filter(i => Number(i.category_id) === Number(c.id)).length;
+        const badge = document.createElement('span');
+        badge.className = 'pill';
+        badge.textContent = String(count);
+
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn small';
+        btnEdit.textContent = 'Edit';
+        btnEdit.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          const newName = prompt('Category name:', c.name);
+          if (newName === null) return;
+          const newSort = prompt('Sort (number):', String(c.sort_order ?? 0));
+          if (newSort === null) return;
+          try {
+            await apiFetch(`../api/menu/categories/${c.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ name: newName.trim(), sort_order: Number(newSort)||0, active: Number(c.active)||1 })
+            });
+            toast('Category updated');
+            await loadCats();
+          } catch (e) {
+            toast(e.message || 'Failed', false);
+          }
+        });
+
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn small danger';
+        btnDel.textContent = 'Delete';
+        btnDel.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
+          if (!confirm(`Delete category "${c.name}"? (Items present: ${count})`)) return;
+          try {
+            await apiFetch(`../api/menu/categories/${c.id}`, { method:'DELETE' });
+            toast('Category deleted');
+            if (state.selectedCatId === Number(c.id)) state.selectedCatId = 0;
+            await loadCats();
+            await loadItems();
+          } catch (e) {
+            toast(e.message || 'Failed to delete (move/delete items first).', false);
+          }
+        });
+
+        right.appendChild(badge);
+        right.appendChild(btnEdit);
+        right.appendChild(btnDel);
+
+        div.appendChild(left);
+        div.appendChild(right);
+
+        els.catList.appendChild(div);
+      });
+    }
+
+    function syncAddFormCat(){ if (state.selectedCatId) els.newCat.value = String(state.selectedCatId); }
+
+    function renderItems() {
+      const q = (els.q.value || '').toLowerCase().trim();
+      const onlyActive = !!els.onlyActive.checked;
+      const catId = Number(state.selectedCatId || 0);
+
+      const filtered = (state.items || []).filter(it => {
+        if (onlyActive && !Number(it.active)) return false;
+        if (catId && Number(it.category_id) !== catId) return false;
+        if (q && !(String(it.name||'').toLowerCase().includes(q) || String(it.category_name||'').toLowerCase().includes(q))) return false;
+        return true;
+      });
+
+      els.itemsBox.innerHTML = '';
+      if (!filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'muted-small';
+        empty.textContent = 'No items';
+        els.itemsBox.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(it => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.dataset.itemId = String(it.id);
+
+        const colName = document.createElement('div');
+        colName.innerHTML = `${it.name} <span class="pill">${it.category_name || ''}</span>`;
+
+        const colPrice = document.createElement('div');
+        colPrice.className = 'num mono';
+        colPrice.textContent = fmt(it.price);
+
+        const colStatus = document.createElement('div');
+        const status = document.createElement('span');
+        status.textContent = Number(it.active) ? 'ON' : 'OFF';
+        status.className = Number(it.active) ? 'on' : 'off';
+        const btnOn = document.createElement('button');
+        btnOn.className = 'btn small';
+        btnOn.textContent = 'ON';
+        const btnOff = document.createElement('button');
+        btnOff.className = 'btn small';
+        btnOff.textContent = 'OFF';
+        const wrap = document.createElement('div');
+        wrap.className = 'row-actions';
+        wrap.appendChild(status);
+        wrap.appendChild(btnOn);
+        wrap.appendChild(btnOff);
+        colStatus.appendChild(wrap);
+
+        const colCat = document.createElement('div');
+        colCat.textContent = it.category_name || '';
+
+        const colActions = document.createElement('div');
+        colActions.className = 'row-actions';
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'btn small';
+        btnEdit.textContent = 'Edit';
+        btnEdit.addEventListener('click', async ()=>{
+          const newName = prompt('Item name:', it.name);
+          if (newName === null) return;
+          const newPrice = prompt('Item price:', String(it.price));
+          if (newPrice === null) return;
+          try{
+            await apiFetch(`../api/menu/items/${it.id}`, {
+              method:'PATCH',
+              body: JSON.stringify({
+                name: newName.trim(),
+                price: Number(newPrice||0).toFixed(2),
+                active: Number(it.active)||0
+              })
+            });
+            toast('Item updated');
+            await loadItems();
+          }catch(e){ toast(e.message||'Failed', false); }
+        });
+
+        const btnDel = document.createElement('button');
+        btnDel.className = 'btn small danger';
+        btnDel.textContent = 'Delete';
+        btnDel.addEventListener('click', async ()=>{
+          if (!confirm(`Delete item "${it.name}"?`)) return;
+          try{
+            await apiFetch(`../api/menu/items/${it.id}`, { method:'DELETE' });
+            toast('Item deleted');
+            await loadItems();
+          }catch(e){
+            toast(e.message || 'Failed to delete (maybe referenced in orders). Turn OFF instead.', false);
+          }
+        });
+
+        const btnReload = document.createElement('button');
+        btnReload.className = 'btn small';
+        btnReload.textContent = 'Reload';
+        btnReload.addEventListener('click', loadItems);
+
+        colActions.appendChild(btnEdit);
+        colActions.appendChild(btnDel);
+        colActions.appendChild(btnReload);
+
+        row.appendChild(colName);
+        row.appendChild(colPrice);
+        row.appendChild(colStatus);
+        row.appendChild(colCat);
+        row.appendChild(colActions);
+        els.itemsBox.appendChild(row);
+
+        async function setActive(val){
+          try {
+            els.itemsMsg.textContent = 'Saving...';
+            btnOn.disabled = true; btnOff.disabled = true;
+            await apiFetch(`../api/menu/items/${it.id}/active/${val}`, { method: 'GET' });
+            const idx = state.items.findIndex(x => Number(x.id) === Number(it.id));
+            if (idx !== -1) state.items[idx].active = val;
+            status.textContent = val ? 'ON' : 'OFF';
+            status.className = val ? 'on' : 'off';
+            els.itemsMsg.textContent = 'Saved';
+            if (els.onlyActive.checked && val === 0) row.remove();
+            renderCats();
+          } catch (e) {
+            els.itemsMsg.textContent = e.message || 'Failed';
+            toast(els.itemsMsg.textContent, false);
+          } finally {
+            btnOn.disabled = false; btnOff.disabled = false;
+            setTimeout(()=> els.itemsMsg.textContent = '', 1200);
+          }
+        }
+        btnOn.addEventListener('click', () => setActive(1));
+        btnOff.addEventListener('click', () => setActive(0));
+      });
+    }
+
+    els.btnReloadCats.addEventListener('click', loadCats);
+    els.btnReloadItems.addEventListener('click', loadItems);
+    els.btnAll.addEventListener('click', () => { state.selectedCatId = 0; renderCats(); renderItems(); });
+
+    els.q.addEventListener('input', renderItems);
+    els.onlyActive.addEventListener('change', renderItems);
+
+    els.btnAdd.addEventListener('click', async () => {
+      try {
+        const name = (els.newName.value || '').trim();
+        const price = Number(els.newPrice.value || 0);
+        const category_id = Number(els.newCat.value || 0);
+        const active = Number(els.newActive.value || 1);
+
+        if (!name || !price || !category_id) {
+          els.addMsg.textContent = 'Name, price and category are required';
+          return;
+        }
+
+        els.addMsg.textContent = 'Saving...';
+        const res = await apiFetch('../api/menu/items', {
+          method: 'POST',
+          body: JSON.stringify({ name, price, category_id, active })
+        });
+        els.addMsg.textContent = 'Saved';
+        els.newName.value = '';
+        els.newPrice.value = '';
+        els.newActive.value = '1';
+
+        state.lastAddedId = res?.id || 0;
+
+        await loadItems();
+        state.selectedCatId = category_id;
+        renderCats();
+        renderItems();
+        toast('Item added');
+      } catch (e) {
+        els.addMsg.textContent = e.message || 'Failed';
+      }
+    });
+
+    (async function init(){
+      await Promise.all([loadCats(), loadItems()]);
+    })();
+  </script>
+</body>
+</html>

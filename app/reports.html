@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastFood POS — Reports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+ <link href="style.css?v=20251013-1" rel="stylesheet">
+<link href="nav.css?v=20251013-1" rel="stylesheet">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-inline">
+      <div class="logo small" aria-hidden="true">🍔</div>
+      <strong>Reports</strong>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn" href="dashboard.html">← Back</a>
+      <button id="logoutBtn" class="btn danger">Logout</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="card-title">Filters</h2>
+      <div class="filters">
+        <div>
+          <label class="muted small">From</label>
+          <input type="date" id="from">
+        </div>
+        <div>
+          <label class="muted small">To</label>
+          <input type="date" id="to">
+        </div>
+        <div>
+          <label class="muted small">Branch ID</label>
+          <input type="number" id="branchId" value="0" min="0" step="1" class="w-120">
+        </div>
+        <button id="btnToday" class="btn">Today</button>
+        <button id="btn7" class="btn">Last 7 days</button>
+        <button id="btnMonth" class="btn">This Month</button>
+        <button id="btnRun" class="btn primary">Run Report</button>
+        <span id="filterMsg" class="muted small"></span>
+      </div>
+    </section>
+
+    <!-- Sales summary -->
+    <section class="cards section">
+      <div class="card-kpi">
+        <div class="k-label">Orders</div>
+        <div id="kOrders" class="k-value">—</div>
+      </div>
+      <div class="card-kpi">
+        <div class="k-label">Grand Total</div>
+        <div id="kGrand" class="k-value mono">—</div>
+      </div>
+      <div class="card-kpi">
+        <div class="k-label">Paid</div>
+        <div id="kPaid" class="k-value mono">—</div>
+      </div>
+      <div class="card-kpi">
+        <div class="k-label">Outstanding</div>
+        <div id="kOutstanding" class="k-value mono">—</div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <h3 class="card-title">Payments by Method</h3>
+      <div id="payBadges" class="toolbar"></div>
+      <div class="toolbar muted small" id="rangeNote"></div>
+    </section>
+
+    <!-- Profit & Loss -->
+    <section class="cards section">
+      <div class="card-kpi">
+        <div class="k-label">Sales (Paid/Partial)</div>
+        <div id="kSalesPL" class="k-value mono">—</div>
+      </div>
+      <div class="card-kpi">
+        <div class="k-label">Expenses</div>
+        <div id="kExpensesPL" class="k-value mono">—</div>
+      </div>
+      <div class="card-kpi">
+        <div class="k-label">Profit</div>
+        <div id="kProfitPL" class="k-value mono">—</div>
+      </div>
+    </section>
+
+    <!-- Items and Categories -->
+    <section class="section">
+      <div class="grid">
+        <div class="card">
+          <div class="toolbar">
+            <h3 class="card-title">Top Items by Quantity</h3>
+            <div class="toolbar">
+              <button id="expQty" class="btn">Export CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>#</th><th>Item</th><th>Category</th><th class="num">Qty</th><th class="num">Amount</th></tr>
+              </thead>
+              <tbody id="bodyQty"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <h3 class="card-title">Top Items by Amount</h3>
+            <div class="toolbar">
+              <button id="expAmt" class="btn">Export CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>#</th><th>Item</th><th>Category</th><th class="num">Qty</th><th class="num">Amount</th></tr>
+              </thead>
+              <tbody id="bodyAmt"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section">
+      <div class="toolbar">
+        <h3 class="card-title">Category Sales</h3>
+        <div class="toolbar">
+          <button id="expCat" class="btn">Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>#</th><th>Category</th><th class="num">Qty</th><th class="num">Amount</th></tr>
+          </thead>
+          <tbody id="bodyCat"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+  <script src="reports.js"></script>
+  <script src="nav.js"></script>
+</body>
+</html>
